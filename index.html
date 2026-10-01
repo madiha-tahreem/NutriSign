@@ -79,7 +79,12 @@ const DATA=[
 {n:"Zinc deficiency",i:"🛡️",nu:["Zinc"],s:["frequent infections","hair loss","slow wound healing","loss of taste or smell","skin rashes","diarrhoea","low appetite"],f:["Pumpkin seeds","Chickpeas","Cashews","Meat","Eggs","Curd","Whole grains"],t:"Soaking pulses and grains improves zinc absorption."},
 {n:"Folate (B9) deficiency",i:"🌿",nu:["Folate / Folic acid"],s:["fatigue","mouth ulcers","pale skin","irritability","headache","shortness of breath","poor concentration"],f:["Leafy greens","Lentils","Beans","Oranges","Beetroot","Avocado","Fortified grains"],t:"Very important before and during early pregnancy."},
 {n:"Iodine deficiency",i:"🦋",nu:["Iodine"],s:["neck swelling (goitre)","fatigue","weight gain","feeling cold","dry skin","hair loss","constipation","low mood"],f:["Iodised salt","Fish","Milk","Eggs","Seaweed"],t:"Using iodised salt is the simplest fix."},
-{n:"Omega-3 deficiency",i:"🐟",nu:["Omega-3 fatty acids (EPA, DHA, ALA)"],s:["dry skin","dry eyes","joint pain","poor concentration","low mood","brittle hair"],f:["Salmon","Sardines","Walnuts","Flaxseeds","Chia seeds","Mustard oil"],t:"Plant ALA converts only partly into EPA/DHA."}
+{n:"Omega-3 deficiency",i:"🐟",nu:["Omega-3 fatty acids (EPA, DHA, ALA)"],s:["dry skin","dry eyes","joint pain","poor concentration","low mood","brittle hair"],f:["Salmon","Sardines","Walnuts","Flaxseeds","Chia seeds","Mustard oil"],t:"Plant ALA converts only partly into EPA/DHA."},
+{n:"Low haemoglobin (anaemia)",a:["hemoglobin","haemoglobin","anemia","anaemia","low hb","blood"],i:"❤️",
+ nu:["Iron","Vitamin B12","Folate (B9)","Vitamin C (helps iron absorption)","Vitamin B6","Copper"],
+ s:["fatigue","pale skin","shortness of breath","dizziness","fast heartbeat","cold hands and feet","headache","chest pain on exertion","brittle nails","weakness"],
+ f:["Beetroot","Pomegranate","Spinach","Dates","Jaggery","Lentils","Liver","Eggs","Amla"],
+ t:"Cook in an iron pan and add lemon or amla to meals. Avoid tea or coffee right after eating. Get a CBC blood test to find the cause."}
 ];
 const $=id=>document.getElementById(id);
 const ALL=[...new Set(DATA.flatMap(d=>d.s))].sort();
@@ -111,7 +116,7 @@ function go(){
   if(tab===2){html=DATA.map(d=>card(d,false)).join("")}
   else if(!terms.length){html=`<p class="empty">Pick a common symptom above or type your own to see possible deficiencies.</p>`}
   else{
-    const r=DATA.map(d=>({d,m:terms.filter(t=>d.s.some(s=>hit(s,t))||d.n.toLowerCase().includes(t)).length})).filter(x=>x.m).sort((a,b)=>b.m-a.m||a.d.n.localeCompare(b.d.n));
+    const r=DATA.map(d=>({d,m:terms.filter(t=>d.s.some(s=>hit(s,t))||d.n.toLowerCase().includes(t)||(d.a||[]).some(a=>a.includes(t))).length})).filter(x=>x.m).sort((a,b)=>b.m-a.m||a.d.n.localeCompare(b.d.n));
     html=r.length?r.map((x,i)=>card(x.d,i===0,x)).join(""):`<p class="empty">No match for those words. Try simpler terms like "fatigue" or "cramps", or browse All deficiencies.</p>`;
   }
   $("out").innerHTML=html;
