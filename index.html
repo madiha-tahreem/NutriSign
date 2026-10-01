@@ -41,6 +41,10 @@ summary::-webkit-details-marker{display:none}
 .body ul{margin:0;padding-left:18px}
 .body .full{grid-column:1/-1}
 mark{background:var(--hit);color:inherit;padding:0 3px;border-radius:4px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;color:var(--mute)}
+select{font:inherit;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
+.warn{background:#ffe3df;color:#7a1308;border:2px solid #e8695a;border-radius:14px;padding:12px 16px;margin-bottom:14px;font-weight:600}
+@media print{.search,.chips,.tabs,.bar,.sel,.disc{display:none}details{break-inside:avoid}}
 .note,.empty{color:var(--mute)}
 .disc{margin-top:36px;font-size:.85rem;color:var(--mute);border-top:1px solid var(--line);padding-top:14px}
 </style>
@@ -51,11 +55,18 @@ mark{background:var(--hit);color:inherit;padding:0 3px;border-radius:4px}
   <p class="lead">Type a symptom, add as many as you have, and see which nutrient deficiencies fit best, plus what to eat.</p>
 
   <div class="search">
-    <input id="q" type="text" placeholder="e.g. fatigue, hair loss, muscle cramps" aria-label="Enter a symptom" autocomplete="off">
+    <input id="q" list="sym" type="text" placeholder="e.g. fatigue, hair loss, muscle cramps" aria-label="Enter a symptom" autocomplete="off">
     <button class="add" id="addBtn">Add</button>
   </div>
   <div class="chips" id="chips" aria-label="Common symptoms"></div>
   <div class="sel" id="sel"></div>
+  <datalist id="sym"></datalist>
+  <div class="bar">
+    <label>Diet: <select id="diet"><option value="all">Any</option><option value="veg">Vegetarian (no egg)</option><option value="vegan">Vegan</option></select></label>
+    <button class="chip" id="share">Copy share link</button>
+    <button class="chip" id="print">Print / save PDF</button>
+  </div>
+  <div id="warn" role="alert"></div>
 
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" id="t1" aria-selected="true">Matches</button>
@@ -80,20 +91,25 @@ const DATA=[
 {n:"Folate (B9) deficiency",i:"🌿",nu:["Folate / Folic acid"],s:["fatigue","mouth ulcers","pale skin","irritability","headache","shortness of breath","poor concentration"],f:["Leafy greens","Lentils","Beans","Oranges","Beetroot","Avocado","Fortified grains"],t:"Very important before and during early pregnancy."},
 {n:"Iodine deficiency",i:"🦋",nu:["Iodine"],s:["neck swelling (goitre)","fatigue","weight gain","feeling cold","dry skin","hair loss","constipation","low mood"],f:["Iodised salt","Fish","Milk","Eggs","Seaweed"],t:"Using iodised salt is the simplest fix."},
 {n:"Omega-3 deficiency",i:"🐟",nu:["Omega-3 fatty acids (EPA, DHA, ALA)"],s:["dry skin","dry eyes","joint pain","poor concentration","low mood","brittle hair"],f:["Salmon","Sardines","Walnuts","Flaxseeds","Chia seeds","Mustard oil"],t:"Plant ALA converts only partly into EPA/DHA."},
-{n:"Low haemoglobin (anaemia)",a:["hemoglobin","haemoglobin","anemia","anaemia","low hb","blood"],i:"❤️",
- nu:["Iron","Vitamin B12","Folate (B9)","Vitamin C (helps iron absorption)","Vitamin B6","Copper"],
- s:["fatigue","pale skin","shortness of breath","dizziness","fast heartbeat","cold hands and feet","headache","chest pain on exertion","brittle nails","weakness"],
- f:["Beetroot","Pomegranate","Spinach","Dates","Jaggery","Lentils","Liver","Eggs","Amla"],
- t:"Cook in an iron pan and add lemon or amla to meals. Avoid tea or coffee right after eating. Get a CBC blood test to find the cause."}
+{n:"Low haemoglobin (anaemia)",a:["hemoglobin","haemoglobin","anemia","anaemia","low hb","blood"],i:"❤️",nu:["Iron","Vitamin B12","Folate (B9)","Vitamin C (helps iron absorption)","Vitamin B6","Copper"],s:["fatigue","pale skin","shortness of breath","dizziness","fast heartbeat","cold hands and feet","headache","chest pain on exertion","brittle nails","weakness"],f:["Beetroot","Pomegranate","Spinach","Dates","Jaggery","Lentils","Liver","Eggs","Amla"],t:"Cook in an iron pan and add lemon or amla to meals. Avoid tea or coffee right after eating. A CBC blood test finds the cause."}
 ];
+const SYN={tired:"fatigue",tiredness:"fatigue",exhausted:"fatigue",hairfall:"hair loss","hair fall":"hair loss",cramps:"muscle cramps",cramp:"muscle cramps",pale:"pale skin",weak:"weakness",giddy:"dizziness",breathless:"shortness of breath",tingling:"tingling in hands and feet",numbness:"tingling in hands and feet",infections:"frequent infections",sad:"low mood",depression:"low mood"};
+const EXTRA={"Iron deficiency (anaemia)":["Drumstick leaves","Jaggery","Ragi","Horse gram","Gongura"],"Calcium deficiency":["Drumstick leaves","Curry leaves"],"Vitamin C deficiency":["Raw mango"],"Vitamin B12 deficiency":["Buttermilk"],"Vitamin A deficiency":["Drumstick leaves","Curry leaves"],"Magnesium deficiency":["Ragi","Jowar"],"Folate (B9) deficiency":["Gongura","Methi leaves"],"Zinc deficiency":["Sesame seeds","Horse gram"]};
+const RISK={"Iron deficiency (anaemia)":"Women with heavy periods, pregnant women, children, vegetarians","Vitamin B12 deficiency":"Vegans, vegetarians, adults over 50, people on metformin or antacids","Vitamin D deficiency":"People with little sun exposure, darker skin, office workers, older adults","Vitamin C deficiency":"Smokers, people with very limited diets","Vitamin A deficiency":"Young children, pregnant women, people with poor fat absorption","Calcium deficiency":"Postmenopausal women, people avoiding dairy, older adults","Magnesium deficiency":"Heavy drinkers, people with diabetes, long-term antacid users","Potassium deficiency":"People with diarrhoea or vomiting, those on diuretics","Zinc deficiency":"Vegetarians, pregnant women, people with gut disorders","Folate (B9) deficiency":"Women planning pregnancy, heavy drinkers","Iodine deficiency":"People in iodine-poor regions, those avoiding iodised salt","Omega-3 deficiency":"Vegetarians and people who rarely eat fish","Low haemoglobin (anaemia)":"Women, pregnant women, children, vegetarians, blood donors"};
+const NONVEG=["Red meat","Liver","Fish","Chicken","Meat","Oily fish","Cod liver oil","Sardines","Salmon","Eggs","Egg yolk"];
+const DAIRY=["Milk","Milk and curd","Curd","Paneer","Fortified milk","Buttermilk"];
+const RED=["chest pain","fainting","severe","shortness of breath","breathless","palpitation","irregular heartbeat","fast heartbeat"];
+DATA.forEach(d=>{d.f=d.f.concat(EXTRA[d.n]||[]);d.r=RISK[d.n]||""});
 const $=id=>document.getElementById(id);
 const ALL=[...new Set(DATA.flatMap(d=>d.s))].sort();
 const COMMON=["fatigue","hair loss","muscle cramps","pale skin","frequent infections","dry skin","tingling in hands and feet","bone pain","mouth ulcers","slow wound healing","constipation","low mood"];
-let terms=[],tab=1;
+let terms=[],tab=1,diet="all";
+$("sym").innerHTML=ALL.map(x=>`<option value="${x}">`).join("");
+const foods=d=>d.f.filter(f=>diet==="all"||(!NONVEG.includes(f)&&(diet==="veg"||!DAIRY.includes(f))));
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hit=(sym,t)=>sym.toLowerCase().includes(t);
 
-function add(t){t=t.trim().toLowerCase();if(t&&!terms.includes(t))terms.push(t);$("q").value="";go()}
+function add(t){t=t.trim().toLowerCase();t=SYN[t]||t;if(t&&!terms.includes(t))terms.push(t);$("q").value="";go()}
 function drop(t){terms=terms.filter(x=>x!==t);go()}
 
 function card(d,open,sc){
@@ -103,8 +119,9 @@ function card(d,open,sc){
     ${sc?`<span class="score">${sc.m}/${terms.length} matched</span>`:""}</summary>
     <div class="body">
       <div><h3>Nutrients needed</h3><ul>${d.nu.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
-      <div><h3>Foods to eat</h3><ul>${d.f.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+      <div><h3>Foods to eat</h3><ul>${foods(d).map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
       <div class="full"><h3>Symptoms to compare${terms.length?" (yours highlighted)":""}</h3><p>${syms.join(" · ")}</p></div>
+      ${d.r?`<p class="note full">👥 Higher risk: ${esc(d.r)}</p>`:""}
       <p class="note full">💡 ${esc(d.t)}</p>
     </div></details>`;
 }
@@ -120,6 +137,9 @@ function go(){
     html=r.length?r.map((x,i)=>card(x.d,i===0,x)).join(""):`<p class="empty">No match for those words. Try simpler terms like "fatigue" or "cramps", or browse All deficiencies.</p>`;
   }
   $("out").innerHTML=html;
+  const red=terms.some(t=>t.length>3&&RED.some(r=>r.includes(t)||t.includes(r)));
+  $("warn").innerHTML=red?`<div class="warn">⚠️ Chest pain, fainting, a racing heartbeat or severe breathlessness can be serious. Please see a doctor promptly instead of relying on this app.</div>`:"";
+  try{localStorage.setItem("ns",JSON.stringify(terms))}catch(e){}
   $("t1").setAttribute("aria-selected",tab===1);$("t2").setAttribute("aria-selected",tab===2);
 }
 $("addBtn").onclick=()=>add($("q").value);
@@ -127,6 +147,10 @@ $("q").addEventListener("keydown",e=>{if(e.key==="Enter")add($("q").value)});
 $("chips").onclick=e=>{const c=e.target.dataset.c;if(c)terms.includes(c)?drop(c):add(c)};
 $("sel").onclick=e=>{if(e.target.dataset.d)drop(e.target.dataset.d);if(e.target.id==="clr"){terms=[];go()}};
 $("t1").onclick=()=>{tab=1;go()};$("t2").onclick=()=>{tab=2;go()};
+$("diet").onchange=e=>{diet=e.target.value;go()};
+$("share").onclick=()=>{location.hash="s="+encodeURIComponent(terms.join(","));const b=$("share");(navigator.clipboard?navigator.clipboard.writeText(location.href):Promise.reject()).then(()=>b.textContent="Link copied ✓",()=>b.textContent="Copy the address bar");setTimeout(()=>b.textContent="Copy share link",2000)};
+$("print").onclick=()=>{document.querySelectorAll("details").forEach(d=>d.open=true);window.print()};
+try{const h=decodeURIComponent(location.hash.slice(3));terms=location.hash.startsWith("#s=")?h.split(",").filter(Boolean):JSON.parse(localStorage.getItem("ns")||"[]")}catch(e){}
 go();
 </script>
 </body>
