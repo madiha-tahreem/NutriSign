@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NutriSign – Find nutrient deficiencies from symptoms</title>
+<meta name="description" content="Search a symptom, see possible nutrient deficiencies, what to eat, and other symptoms to compare.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥬</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f8f4;--ink:#12332b;--mute:#52706a;--card:#fff;--line:#d5e5dc;--green:#1f7a5a;--mango:#f2a33a;--hit:#fde7bf}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1f1a;--ink:#e6f2ec;--mute:#9bb8ae;--card:#16302a;--line:#27463d;--green:#4fc596;--hit:#5b4417}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Bricolage Grotesque',system-ui,sans-serif}
+.wrap{max-width:860px;margin:auto;padding:28px 18px 60px}
+h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;margin:0 0 10px;font-weight:800;letter-spacing:-.02em}
+.lead{color:var(--mute);max-width:56ch;margin:0 0 22px}
+.search{display:flex;gap:8px}
+input{flex:1;font:inherit;padding:14px 16px;border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink)}
+input:focus,button:focus-visible,summary:focus-visible{outline:3px solid var(--mango);outline-offset:2px}
+button{font:inherit;cursor:pointer;border:0}
+.add{background:var(--green);color:#fff;padding:0 20px;border-radius:14px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{background:var(--card);border:1.5px solid var(--line);color:var(--ink);padding:6px 13px;border-radius:99px}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;color:var(--mute)}
+.sel .chip.on::after{content:" ×"}
+.clear{background:none;color:var(--green);text-decoration:underline;padding:4px}
+.tabs{display:flex;gap:6px;margin:8px 0 16px;border-bottom:2px solid var(--line)}
+.tab{background:none;color:var(--mute);padding:10px 14px;font-weight:600;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--mango)}
+details{background:var(--card);border:1.5px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
+summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:center;gap:14px}
+summary::-webkit-details-marker{display:none}
+.ico{font-size:1.8rem}
+.ttl{flex:1}.ttl b{font-size:1.15rem;display:block}.ttl small{color:var(--mute)}
+.score{background:var(--mango);color:#2b1c00;font-weight:800;border-radius:99px;padding:4px 12px;white-space:nowrap}
+.body{padding:0 18px 18px;display:grid;gap:14px;grid-template-columns:1fr 1fr}
+@media(max-width:620px){.body{grid-template-columns:1fr}}
+.body h3{margin:0 0 6px;font-size:.95rem;color:var(--green)}
+.body ul{margin:0;padding-left:18px}
+.body .full{grid-column:1/-1}
+mark{background:var(--hit);color:inherit;padding:0 3px;border-radius:4px}
+.note,.empty{color:var(--mute)}
+.disc{margin-top:36px;font-size:.85rem;color:var(--mute);border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>What is your body telling you?</h1>
+  <p class="lead">Type a symptom, add as many as you have, and see which nutrient deficiencies fit best, plus what to eat.</p>
+
+  <div class="search">
+    <input id="q" type="text" placeholder="e.g. fatigue, hair loss, muscle cramps" aria-label="Enter a symptom" autocomplete="off">
+    <button class="add" id="addBtn">Add</button>
+  </div>
+  <div class="chips" id="chips" aria-label="Common symptoms"></div>
+  <div class="sel" id="sel"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t1" aria-selected="true">Matches</button>
+    <button class="tab" role="tab" id="t2" aria-selected="false">All deficiencies</button>
+  </div>
+  <div id="out"></div>
+
+  <p class="disc">This app is for general education only and is not medical advice. Many symptoms have causes unrelated to nutrition. See a doctor for blood tests and diagnosis before starting supplements.</p>
+</main>
+
+<script>
+const DATA=[
+{n:"Iron deficiency (anaemia)",i:"🩸",nu:["Iron","Vitamin C (helps absorption)"],s:["fatigue","pale skin","shortness of breath","dizziness","cold hands and feet","brittle nails","hair loss","headache","restless legs"],f:["Spinach","Lentils","Red meat","Chickpeas","Tofu","Pumpkin seeds","Fortified cereals"],t:"Pair plant iron with citrus or amla; avoid tea or coffee with meals."},
+{n:"Vitamin B12 deficiency",i:"🧠",nu:["Vitamin B12 (cobalamin)"],s:["fatigue","tingling in hands and feet","memory problems","pale skin","mouth ulcers","mood changes","balance problems","weakness"],f:["Eggs","Milk and curd","Fish","Chicken","Fortified cereals","Nutritional yeast"],t:"Vegans and older adults are at higher risk."},
+{n:"Vitamin D deficiency",i:"☀️",nu:["Vitamin D","Calcium (works together)"],s:["bone pain","muscle weakness","fatigue","frequent infections","low mood","slow wound healing","back pain","hair loss"],f:["Oily fish","Egg yolk","Fortified milk","Mushrooms (sun-exposed)","Cod liver oil"],t:"15–20 minutes of morning sun on bare skin helps."},
+{n:"Vitamin C deficiency",i:"🍊",nu:["Vitamin C"],s:["bleeding gums","slow wound healing","easy bruising","fatigue","dry rough skin","joint pain","frequent infections"],f:["Amla","Oranges","Guava","Bell peppers","Lemon","Strawberries","Broccoli"],t:"Heat destroys vitamin C, so eat some fruit and veg raw."},
+{n:"Vitamin A deficiency",i:"👁️",nu:["Vitamin A"],s:["night blindness","dry eyes","dry skin","frequent infections","slow wound healing","skin bumps"],f:["Carrots","Sweet potato","Papaya","Mango","Liver","Spinach","Eggs"],t:"Fat-containing meals improve absorption."},
+{n:"Calcium deficiency",i:"🦴",nu:["Calcium","Vitamin D","Magnesium"],s:["muscle cramps","brittle nails","tingling in hands and feet","weak bones","tooth decay","numbness around mouth","fatigue"],f:["Milk","Curd","Paneer","Ragi (finger millet)","Sesame seeds","Almonds","Sardines"],t:"Ragi and sesame are strong non-dairy sources."},
+{n:"Magnesium deficiency",i:"⚡",nu:["Magnesium"],s:["muscle cramps","muscle twitching","fatigue","irregular heartbeat","anxiety","poor sleep","headache","constipation"],f:["Pumpkin seeds","Almonds","Cashews","Spinach","Banana","Whole grains","Dark chocolate"],t:"Low magnesium often shows up as night-time leg cramps."},
+{n:"Potassium deficiency",i:"🍌",nu:["Potassium"],s:["muscle weakness","muscle cramps","constipation","irregular heartbeat","fatigue","tingling in hands and feet"],f:["Banana","Coconut water","Potato","Sweet potato","Beans","Avocado","Tomato"],t:"Often linked to vomiting, diarrhoea or some medicines."},
+{n:"Zinc deficiency",i:"🛡️",nu:["Zinc"],s:["frequent infections","hair loss","slow wound healing","loss of taste or smell","skin rashes","diarrhoea","low appetite"],f:["Pumpkin seeds","Chickpeas","Cashews","Meat","Eggs","Curd","Whole grains"],t:"Soaking pulses and grains improves zinc absorption."},
+{n:"Folate (B9) deficiency",i:"🌿",nu:["Folate / Folic acid"],s:["fatigue","mouth ulcers","pale skin","irritability","headache","shortness of breath","poor concentration"],f:["Leafy greens","Lentils","Beans","Oranges","Beetroot","Avocado","Fortified grains"],t:"Very important before and during early pregnancy."},
+{n:"Iodine deficiency",i:"🦋",nu:["Iodine"],s:["neck swelling (goitre)","fatigue","weight gain","feeling cold","dry skin","hair loss","constipation","low mood"],f:["Iodised salt","Fish","Milk","Eggs","Seaweed"],t:"Using iodised salt is the simplest fix."},
+{n:"Omega-3 deficiency",i:"🐟",nu:["Omega-3 fatty acids (EPA, DHA, ALA)"],s:["dry skin","dry eyes","joint pain","poor concentration","low mood","brittle hair"],f:["Salmon","Sardines","Walnuts","Flaxseeds","Chia seeds","Mustard oil"],t:"Plant ALA converts only partly into EPA/DHA."}
+];
+const $=id=>document.getElementById(id);
+const ALL=[...new Set(DATA.flatMap(d=>d.s))].sort();
+const COMMON=["fatigue","hair loss","muscle cramps","pale skin","frequent infections","dry skin","tingling in hands and feet","bone pain","mouth ulcers","slow wound healing","constipation","low mood"];
+let terms=[],tab=1;
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hit=(sym,t)=>sym.toLowerCase().includes(t);
+
+function add(t){t=t.trim().toLowerCase();if(t&&!terms.includes(t))terms.push(t);$("q").value="";go()}
+function drop(t){terms=terms.filter(x=>x!==t);go()}
+
+function card(d,open,sc){
+  const syms=d.s.map(s=>terms.some(t=>hit(s,t))?`<mark>${esc(s)}</mark>`:esc(s));
+  return `<details ${open?"open":""}><summary><span class="ico">${d.i}</span>
+    <span class="ttl"><b>${esc(d.n)}</b><small>${esc(d.nu.join(", "))}</small></span>
+    ${sc?`<span class="score">${sc.m}/${terms.length} matched</span>`:""}</summary>
+    <div class="body">
+      <div><h3>Nutrients needed</h3><ul>${d.nu.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+      <div><h3>Foods to eat</h3><ul>${d.f.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+      <div class="full"><h3>Symptoms to compare${terms.length?" (yours highlighted)":""}</h3><p>${syms.join(" · ")}</p></div>
+      <p class="note full">💡 ${esc(d.t)}</p>
+    </div></details>`;
+}
+
+function go(){
+  $("chips").innerHTML=COMMON.map(c=>`<button class="chip ${terms.includes(c)?"on":""}" data-c="${c}">${c}</button>`).join("");
+  $("sel").innerHTML=terms.length?`Your symptoms: `+terms.map(t=>`<button class="chip on" data-d="${esc(t)}">${esc(t)}</button>`).join("")+`<button class="clear" id="clr">Clear all</button>`:"";
+  let html="";
+  if(tab===2){html=DATA.map(d=>card(d,false)).join("")}
+  else if(!terms.length){html=`<p class="empty">Pick a common symptom above or type your own to see possible deficiencies.</p>`}
+  else{
+    const r=DATA.map(d=>({d,m:terms.filter(t=>d.s.some(s=>hit(s,t))||d.n.toLowerCase().includes(t)).length})).filter(x=>x.m).sort((a,b)=>b.m-a.m||a.d.n.localeCompare(b.d.n));
+    html=r.length?r.map((x,i)=>card(x.d,i===0,x)).join(""):`<p class="empty">No match for those words. Try simpler terms like "fatigue" or "cramps", or browse All deficiencies.</p>`;
+  }
+  $("out").innerHTML=html;
+  $("t1").setAttribute("aria-selected",tab===1);$("t2").setAttribute("aria-selected",tab===2);
+}
+$("addBtn").onclick=()=>add($("q").value);
+$("q").addEventListener("keydown",e=>{if(e.key==="Enter")add($("q").value)});
+$("chips").onclick=e=>{const c=e.target.dataset.c;if(c)terms.includes(c)?drop(c):add(c)};
+$("sel").onclick=e=>{if(e.target.dataset.d)drop(e.target.dataset.d);if(e.target.id==="clr"){terms=[];go()}};
+$("t1").onclick=()=>{tab=1;go()};$("t2").onclick=()=>{tab=2;go()};
+go();
+</script>
+</body>
+</html>
